@@ -1,0 +1,20 @@
+{
+"target":"xgraphics",
+"type":"static",
+"includes":["src","include","third_party/stb"],
+"defines":["_CRT_SECURE_NO_WARNINGS"],
+"srcdirs":["include", "src"],
+"test":{
+	"target":"xgraphics_test",
+	"type":"executable",
+	"srcdirs":["test"]
+},
+"jni":{
+	"target":"xgraphics_jni",
+	"type":"shared",
+	"srcdirs":["jni"],
+	"includes":["$(JAVA_HOME)/include", "$(JAVA_HOME)/include/win32", "$(JAVA_HOME)/include/linux"],
+	"defines":["JNI_PREFIX=Java_com_xgraphics_org_NativeGraphics_"]
+}
+
+}
