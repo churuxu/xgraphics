@@ -406,7 +406,7 @@ static blend_func get_blend_func(image_t dst, image_t src) {
 	return render;
 }
 
-//获取绘制区域, 有返回1，没有返回0
+//获取绘制区域, 有返回1，没有返回0  参数：最大宽，最大高，目前绘制区域，得到区域
 static int get_draw_rect(int maxw, int maxh, const rect* dst, rect* out, int* srcx, int* srcy) {
 	out->left = (dst->left < 0) ? 0 : dst->left;
 	out->top = (dst->top < 0) ? 0 : dst->top;
@@ -647,10 +647,15 @@ static int get_glyph(font_t font, int codepoint, glyph* g) {
 }
 
 //绘制一个字形
-int render_glyph(image_t dst, int dstlinew, blend_func render, glyph* g, color_t color, int x, int y) {
+static int render_glyph(image_t dst, int dstlinew, blend_func render, glyph* g, color_t color, int x, int y, const rect* allowable) {
 	rect rc;
 	int srcx = 0;
 	int srcy = 0;
+	if (allowable) {
+		int minx = allowable->left;
+		int maxx = allowable->right;
+		if ((x < minx) || ((x + g->width) > maxx))return 0;
+	}
 	rect dstrc;
 	dstrc.left = x + g->left;
 	dstrc.top = y + g->font->ascent + g->top;
@@ -664,7 +669,7 @@ int render_glyph(image_t dst, int dstlinew, blend_func render, glyph* g, color_t
 }
 
 //绘制下滑线或删除线
-void font_draw_line( image_t dst, int dstlinew, font_t font, blend_func render, color_t color, int fromx, int tox, int y) {
+static void font_draw_line( image_t dst, int dstlinew, font_t font, blend_func render, color_t color, int fromx, int tox, int y) {
 	rect rc;
 	int srcx = 0;
 	int srcy = 0;
@@ -707,10 +712,11 @@ int canvas_measure_text_width(canvas_t c, font_t font, const char* str) {
 	return (int)(ret * font->scale);
 }
 
-//画字符串
-int canvas_draw_text(canvas_t c, font_t font, color_t color, const char* str, int x, int y) {
+
+//在区域内画字符串
+static int canvas_draw_text_in_rect(canvas_t c, font_t font, color_t color, const char* str, int x, int y, const rect* rc) {
 	uint32_t ch = 0;
-	int firstx = x;	
+	int firstx = x;
 	glyph g;
 	const char* pstr = str;
 	stbtt_fontinfo* info = &(font->family->info);
@@ -721,11 +727,10 @@ int canvas_draw_text(canvas_t c, font_t font, color_t color, const char* str, in
 	if (glyph_prepare(font, &g))return ENOMEM;
 	ch = get_unicode_char(pstr, &pstr);
 	while (ch) {
-		if (get_glyph(font, ch, &g)) { 
-			//获取到字型
-			render_glyph(c->image, dstw, render, &g, color, x, y);			
+		if (get_glyph(font, ch, &g)) { //获取到字型			
+			render_glyph(c->image, dstw, render, &g, color, x, y, rc);			
 		}
-			
+
 		x += (g.advance + HSPACING);
 		ch = get_unicode_char(pstr, &pstr);
 	}
@@ -736,11 +741,17 @@ int canvas_draw_text(canvas_t c, font_t font, color_t color, const char* str, in
 	return 0;
 }
 
+
+//画字符串
+int canvas_draw_text(canvas_t c, font_t font, color_t color, const char* str, int x, int y) {	
+	return canvas_draw_text_in_rect(c, font, color, str, x, y, NULL);
+}
+
 //画字符串（居中|靠右等）
 int canvas_draw_text_aligned(canvas_t c, font_t font, color_t color, const char* str, const rect* dst, int align) {
 	int w = canvas_measure_text_width(c, font, str);
 	int h = font->size;
-	if (dst->right - dst->left < w || dst->bottom - dst->top < h)return EINVAL; //范围太小
+	//if (dst->right - dst->left < w || dst->bottom - dst->top < h)return EINVAL; //范围太小
 	int x, y;
 	int halign = align & 0xf;
 	int valign = (align & 0xf0) >> 4;
@@ -764,7 +775,7 @@ int canvas_draw_text_aligned(canvas_t c, font_t font, color_t color, const char*
 	else {
 		y = dst->top;
 	}
-	return canvas_draw_text(c, font, color, str, x, y);
+	return canvas_draw_text_in_rect(c, font, color, str, x, y, dst);
 }
 
 
@@ -806,11 +817,11 @@ int canvas_draw_text_multiline(canvas_t c, font_t font, color_t color, const cha
 					//超出, 绘制3个点		
 					hasglyph = get_glyph(font, '.', &g);
 					if (hasglyph) {
-						render_glyph(c->image, dstw, render, &g, color, x, y);
+						render_glyph(c->image, dstw, render, &g, color, x, y, NULL);
 						x += g.advance + HSPACING;
-						render_glyph(c->image, dstw, render, &g, color, x, y);
+						render_glyph(c->image, dstw, render, &g, color, x, y, NULL);
 						x += g.advance + HSPACING;
-						render_glyph(c->image, dstw, render, &g, color, x, y);
+						render_glyph(c->image, dstw, render, &g, color, x, y, NULL);
 					}
 					break;
 				}
@@ -839,7 +850,7 @@ int canvas_draw_text_multiline(canvas_t c, font_t font, color_t color, const cha
 		}
 
 		if (hasglyph) { //字形存在则绘制
-			render_glyph(c->image, dstw, render, &g, color, x, y);
+			render_glyph(c->image, dstw, render, &g, color, x, y, NULL);
 		}
 
 		x = nextx;
