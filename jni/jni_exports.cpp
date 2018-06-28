@@ -1,7 +1,9 @@
 #include "xgraphics.h"
 #include "jni.h"
 #include <stdint.h>
-
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
 #define _JNI_NAME_CAT_HELP(a,b) a##b
 #define _JNI_NAME_CAT(a,b) _JNI_NAME_CAT_HELP(a,b)
@@ -49,24 +51,48 @@ JNI_FUNC(jint, saveImageToFile)(JNIEnv* env, jclass cls, jlong img, jint encode,
 
 typedef struct write_byte_array_context {
 	JNIEnv* env;
-	jbyteArray arr;
+	void* buf;
+	int buflen;
+	int len;
 }write_byte_array_context;
 
 static void write_to_jbyteArray(void* arg, void* data, int len) {
 	write_byte_array_context* ctx = (write_byte_array_context*) arg;
-	ctx->arr = ctx->env->NewByteArray(len);
-	if (ctx->arr) {
-		ctx->env->SetByteArrayRegion(ctx->arr, 0, len, (jbyte*)data);
+	if (!ctx->buf) {
+		return;
+	}	
+	if (ctx->len + len >= ctx->buflen) {
+		//内存不足
+		ctx->buflen = ctx->len + len + (1024 * 160);
+		ctx->buf = realloc(ctx->buf, ctx->buflen);
+		if (!ctx->buf) {
+			ctx->len = -1;
+		}
 	}
+	memcpy((char*)(ctx->buf) +  ctx->len, data, len);
+	ctx->len += len;
 }
 
 //static byte[] encodeImage(long img, int encode)
 JNI_FUNC(jbyteArray, encodeImage)(JNIEnv* env, jclass cls, jlong img, jint encode) {
+	jbyteArray arr = NULL;
 	write_byte_array_context ctx;
 	ctx.env = env;
-	ctx.arr = NULL;
-	int err = image_save((image_t)(uintptr_t)img, encode, write_to_jbyteArray, &ctx);	
-	return ctx.arr;
+	ctx.buflen = 1024 * 160; //预先分配 160K
+	ctx.buf = malloc(ctx.buflen);	
+	if (!ctx.buf) {
+		return NULL;
+	}
+	ctx.len = 0;
+	int err = image_save((image_t)(uintptr_t)img, encode, write_to_jbyteArray, &ctx);
+	if (err == 0 && ctx.len > 0) { //成功
+		arr = env->NewByteArray(ctx.len);
+		env->SetByteArrayRegion(arr, 0, ctx.len, (jbyte*)ctx.buf);
+	}
+	if (ctx.buf) {
+		free(ctx.buf);
+	}	
+	return arr;
 }
 
 

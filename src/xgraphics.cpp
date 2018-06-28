@@ -118,7 +118,9 @@ image_t image_load_from_file(const char* name) {
 	return NULL;
 }
 
+#ifndef JPG_QUALITY
 #define JPG_QUALITY  50
+#endif
 
 int image_save(image_t img, int encode, image_write_func func, void* userdata) {
 	int internalret = 0;
@@ -245,7 +247,7 @@ image_t image_scaled(image_t img, int width, int height) {
 	return newimg;
 }
 
-image_t image_scaled_partial(image_t img, int width, int height, const rect* rc) {
+image_t image_scaled_partial(image_t img, int width, int height, const rect* rc) {	
 	int pixellen = width * height * img->comp;
 	int stride = width* img->comp;
 	void* newpixel = malloc(pixellen);
@@ -253,7 +255,7 @@ image_t image_scaled_partial(image_t img, int width, int height, const rect* rc)
 	int ret = stbir_resize_region((unsigned char*)img->pixel, img->width, img->height, img->width * img->comp,
 		(unsigned char*)newpixel, width, height, stride, STBIR_TYPE_UINT8, img->comp, img->comp==4?1:0, 0,
 		STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP, STBIR_FILTER_DEFAULT, STBIR_FILTER_DEFAULT, STBIR_COLORSPACE_LINEAR, NULL,
-		(float)rc->left / (float)width, (float)rc->top / (float)height, (float)rc->right / (float)width, (float)rc->bottom / (float)height);
+		(float)rc->left / (float)img->width, (float)rc->top / (float)img->height, (float)rc->right / (float)img->width, (float)rc->bottom / (float)img->height);
 	if (!ret) {
 		free(newpixel);
 		return NULL;

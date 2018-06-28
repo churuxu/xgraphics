@@ -219,6 +219,39 @@ void scale_test() {
 }
 
 
+void scale_partail_test() {
+	image_t img = image_load_from_file("E:\\gmtest\\item2.jpg");
+	if (!img)return;
+	rect rc;
+	rc.left = 0;
+	rc.top = 50;
+	rc.right = 323;
+	rc.bottom = 373;
+	image_t newimg1 = image_scaled(img, 700, 700);
+	image_t newimg2 = image_scaled_partial(img, 700, 700, &rc);
+	image_save_to_file(newimg1, IMAGE_ENCODE_JPG, "E:\\gmtest\\item2_scaled1.jpg");
+	image_save_to_file(newimg2, IMAGE_ENCODE_JPG, "E:\\gmtest\\item2_scaled2.jpg");
+
+}
+
+int fit(const char* input, const char* output, int width) {
+	image_t img = image_load_from_file(input);
+	if (!img)return 1;
+	int w = image_width(img);
+	int h = image_height(img);
+	if (w == width)return 0;
+	float scale = (float)width / (float)w;
+	int newh = (int)(h * scale);
+	image_t newimg = image_scaled(img, width, newh);
+	int encode = IMAGE_ENCODE_JPG;
+	if (strstr(output, ".png")) {
+		encode = IMAGE_ENCODE_PNG;
+	}
+	image_save_to_file(newimg, encode, output);
+	return 0;
+}
+
+
 int main(int argc, char* arg[]) {
 	const char* cmd = "";
 	const char* file = "";
@@ -246,9 +279,13 @@ int main(int argc, char* arg[]) {
 	}
 	else if (strcmp(cmd, "test") == 0) {
 		//encode_test();
-		test_font();
+		scale_partail_test();
 		//test_invalid_file();
 		//scale_test();
+	}
+	else if (strcmp(cmd, "fit") == 0) {
+		
+		return fit(file, file, count);
 	}
 	else {		
 		printf("not support command\n");
