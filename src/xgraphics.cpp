@@ -218,9 +218,12 @@ image_t image_copy(image_t img) {
 	image_t newimg = (image_t)malloc(sizeof(struct _image));
 	if (!newimg)return NULL;
 	void* newpixel = malloc(pixellen);
-	if (!newpixel) { free(newimg); return NULL; }
-	memcpy(newpixel, img->pixel, pixellen);
-	memcpy(newimg, img, sizeof(struct _image));
+	if (!newpixel) { free(newimg); return NULL; }	
+	memcpy(newpixel, img->pixel, pixellen);	
+	newimg->pixel = newpixel;
+	newimg->width = img->width;
+	newimg->height = img->height;
+	newimg->comp = img->comp;
 	return newimg;
 }
 
