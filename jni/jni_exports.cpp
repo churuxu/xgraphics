@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include "memory_helper.h"
+#include "memory_tlspool.h"
 
 #define _JNI_NAME_CAT_HELP(a,b) a##b
 #define _JNI_NAME_CAT(a,b) _JNI_NAME_CAT_HELP(a,b)
@@ -60,14 +62,12 @@ static void write_to_jbyteArray(void* arg, void* data, int len) {
 	write_byte_array_context* ctx = (write_byte_array_context*) arg;
 	if (!ctx->buf) {
 		return;
-	}	
+	}
+	if(ctx->len < 0)return;
 	if (ctx->len + len >= ctx->buflen) {
-		//内存不足
-		ctx->buflen = ctx->len + len + (1024 * 160);
-		ctx->buf = realloc(ctx->buf, ctx->buflen);
-		if (!ctx->buf) {
-			ctx->len = -1;
-		}
+		//内存不足		
+		ctx->len = -1;	
+		return;
 	}
 	memcpy((char*)(ctx->buf) +  ctx->len, data, len);
 	ctx->len += len;
@@ -78,7 +78,7 @@ JNI_FUNC(jbyteArray, encodeImage)(JNIEnv* env, jclass cls, jlong img, jint encod
 	jbyteArray arr = NULL;
 	write_byte_array_context ctx;
 	ctx.env = env;
-	ctx.buflen = 1024 * 160; //预先分配 160K
+	ctx.buflen = 1024 * 200; //预先分配 200K
 	ctx.buf = malloc(ctx.buflen);	
 	if (!ctx.buf) {
 		return NULL;
@@ -302,3 +302,29 @@ JNI_FUNC(jint, fillRect)(JNIEnv* env, jclass cls, jlong canvas, jint color, jint
 	return ret;
 }
 
+//static void clearMemory()
+JNI_FUNC(void, clearMemory)(JNIEnv* env, jclass cls) {
+#ifdef USE_MEMORY_HELPER
+	memory_record_clear();
+#endif
+}
+//static void printMemory()
+JNI_FUNC(void, printMemory)(JNIEnv* env, jclass cls) {
+#ifdef USE_MEMORY_HELPER
+	memory_record_print();
+#endif
+}
+
+//static void setMemorySize()
+JNI_FUNC(void, setMemorySize)(JNIEnv* env, jclass cls, jint sz) {
+#ifdef USE_MEMORY_TLSPOOL
+	memory_tlspool_init(sz);
+#endif
+}
+
+//static void resetMemory()
+JNI_FUNC(void, resetMemory)(JNIEnv* env, jclass cls) {
+#ifdef USE_MEMORY_TLSPOOL
+	memory_tlspool_reset();
+#endif
+}

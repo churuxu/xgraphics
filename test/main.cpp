@@ -7,6 +7,10 @@
 //#include "libyuv.h"
 #include <assert.h>
 //using namespace libyuv;
+#include <crtdbg.h>
+
+#include "memory_helper.h"
+#include "memory_tlspool.h"
 
 void* readFileContent(const char* name, size_t* plen) {
 	FILE* f = fopen(name, "rb");
@@ -116,12 +120,12 @@ void font(int count, const char* file) {
 }
 
 void test_font() {
-	font_family_t family = font_family_load_from_file("msyh.ttf");
+	font_family_t family = font_family_load_from_file("E:\\gmtest\\msyh.ttf");
 	//font_family_t family = font_family_load_from_file("1.jpg");
-	font_t font = font_create(family, 25, FONT_STYLE_UNDERLINE&0);
+	font_t font = font_create(family, 30, FONT_STYLE_UNDERLINE&0);
 	//image_t back = image_alloc(500, 500, IMAGE_TYPE_RGB);
-	image_t back = image_load_from_file("1.jpg");
-	image_t img = image_load_from_file("2.jpg");
+	image_t back = image_load_from_file("E:\\gmtest\\1.jpg");
+	image_t img = image_load_from_file("E:\\gmtest\\2.jpg");
 
 	canvas_t c = canvas_create(back);
 	//canvas_draw_text(c, font, 0xff1122, "hello world", -20, 20);
@@ -136,7 +140,7 @@ void test_font() {
 	ret = canvas_draw_image_scaled(c, img, &rc0);
 
 	rect rc1 = {36, 988, 200, 1032};
-	ret = canvas_draw_text_aligned(c, font, 0xffffff, "12345", &rc1, TEXT_ALIGN_CENTER | TEXT_VALIGN_CENTER);
+	ret = canvas_draw_text_aligned(c, font, 0x000000, "1234567890123456789", &rc1, TEXT_ALIGN_CENTER | TEXT_VALIGN_CENTER);
 	rect rc2 = { 250, 988, 410, 1032 };
 	ret = canvas_draw_text_aligned(c, font, 0xffffff, "67890", &rc2, TEXT_ALIGN_CENTER | TEXT_VALIGN_CENTER);
 	rect rc3 = { 25, 90, 725, 160 };
@@ -234,6 +238,39 @@ void scale_partail_test() {
 
 }
 
+void test_draw_image() {
+	image_t back = image_load_from_file("E:\\gmtest\\1.jpg");
+	image_t item = image_load_from_file("E:\\gmtest\\item2.jpg");
+	canvas_t canvas = canvas_create(back);
+	rect rc = {10,90,520,600};
+	canvas_draw_image_scaled(canvas, item, &rc);
+	image_free(back);
+	image_free(item);
+	canvas_free(canvas);
+}
+
+void test_draw_text() {
+	font_family_t family = font_family_load_from_file("E:\\gmtest\\msyh.ttf");
+	font_t font = font_create(family, 30, 0);
+	image_t back = image_load_from_file("E:\\gmtest\\1.jpg");	
+	canvas_t canvas = canvas_create(back);
+	rect rc = { 10,90,520,600 };
+	canvas_draw_text_multiline(canvas, font, 0xff0000, "hello world hello world hello world hello world", &rc, 0);
+	image_free(back);	
+	canvas_free(canvas);
+	font_free(font);
+	font_family_free(family);
+}
+
+void leak_test() {
+
+	//test_draw_image();
+	test_draw_text();
+	//_CrtDumpMemoryLeaks();
+	//memory_record_print();
+}
+
+
 int fit(const char* input, const char* output, int width) {
 	image_t img = image_load_from_file(input);
 	if (!img)return 1;
@@ -279,7 +316,9 @@ int main(int argc, char* arg[]) {
 	}
 	else if (strcmp(cmd, "test") == 0) {
 		//encode_test();
-		scale_partail_test();
+		leak_test();
+		//test_font();
+		//scale_partail_test();
 		//test_invalid_file();
 		//scale_test();
 	}
