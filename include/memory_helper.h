@@ -19,6 +19,9 @@ void memory_record_clear();
 //打印未释放的分配记录
 void memory_record_print();
 
+//获取已分配内存大小
+size_t memory_usage();
+
 
 #define malloc(sz) memory_record_malloc(sz, __FUNCTION__, __FILE__, __LINE__)
 #define free memory_record_free

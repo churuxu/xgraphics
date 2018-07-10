@@ -4,11 +4,12 @@
 #include <stdint.h>
 #include <errno.h>
 
+#include "memory_helper.h"
 
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
 
-#include "memory_helper.h"
+
 #include "memory_tlspool.h"
 
 #define STB_IMAGE_IMPLEMENTATION

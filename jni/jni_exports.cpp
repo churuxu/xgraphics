@@ -315,6 +315,13 @@ JNI_FUNC(void, printMemory)(JNIEnv* env, jclass cls) {
 #endif
 }
 
+//static jlong memoryUsage()
+JNI_FUNC(jlong, memoryUsage)(JNIEnv* env, jclass cls) {
+#ifdef USE_MEMORY_HELPER
+	return (jlong)memory_usage();
+#endif
+}
+
 //static void setMemorySize()
 JNI_FUNC(void, setMemorySize)(JNIEnv* env, jclass cls, jint sz) {
 #ifdef USE_MEMORY_TLSPOOL
